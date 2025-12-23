@@ -14,20 +14,35 @@
   <p id="msg"></p>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script>
-    const supabase = window.supabase.createClient(
-      "https://tlxidqqcnpfxirmokhol.supabase.co",
-      "sb_publishable_Xs-Tc9ZbdW5TwXVxlEdIqA_49yuVrS7"
-    );
+<script>
+  const supabase = window.supabase.createClient(
+    "https://tlxidqqcnpfxirmokhol.supabase.co",
+    "sb_publishable_Xs-Tc9ZbdW5TwXVxlEdIqA_49yuVrS7"
+  );
 
-    async function signup() {
-      const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
+  async function signup() {
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
 
-      const { error } = await supabase.auth.signUp({ email, password });
-      document.getElementById("msg").textContent =
-        error ? error.message : "Check your email";
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email, password
+    });
+
+    if (error) {
+      document.getElementById("msg").textContent = error.message;
+      return;
     }
-  </script>
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("is_admin")
+      .eq("id", data.user.id)
+      .single();
+
+    document.getElementById("msg").textContent =
+      profile?.is_admin ? "Admin logged in" : "User logged in";
+  }
+</script>
+
 </body>
 </html>
