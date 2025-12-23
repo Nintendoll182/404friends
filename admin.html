@@ -3,6 +3,8 @@
 <body>
   <h1>Admin</h1>
   <p id="msg">Checking…</p>
+  <button id="addLogBtn" style="display:none;">Add test log</button>
+  <ul id="logs"></ul>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
@@ -11,13 +13,12 @@
       "sb_publishable_Xs-Tc9ZbdW5TwXVxlEdIqA_49yuVrS7"
     );
 
-    (async () => {
+    async function ensureAdmin() {
       const { data: sess } = await sb.auth.getSession();
       if (!sess.session) {
         window.location.href = "index.html";
-        return;
+        return null;
       }
-
       const userId = sess.session.user.id;
 
       const { data: profile } = await sb
@@ -28,12 +29,47 @@
 
       if (!profile?.is_admin) {
         document.getElementById("msg").textContent = "Not authorized";
-        return;
+        return null;
       }
 
       document.getElementById("msg").textContent = "Welcome, admin";
+      document.getElementById("addLogBtn").style.display = "inline-block";
+      return userId;
+    }
+
+    async function loadLogs() {
+      const { data, error } = await sb
+        .from("admin_logs")
+        .select("action, created_at")
+        .order("created_at", { ascending: false })
+        .limit(20);
+
+      const ul = document.getElementById("logs");
+      ul.innerHTML = "";
+
+      if (error) {
+        ul.innerHTML = "<li>" + error.message + "</li>";
+        return;
+      }
+
+      data.forEach(row => {
+        const li = document.createElement("li");
+        li.textContent = `${row.created_at}: ${row.action}`;
+        ul.appendChild(li);
+      });
+    }
+
+    document.getElementById("addLogBtn").onclick = async () => {
+      const { error } = await sb.from("admin_logs").insert({
+        action: "Test log from admin page"
+      });
+      if (!error) loadLogs();
+    };
+
+    (async () => {
+      const ok = await ensureAdmin();
+      if (ok) await loadLogs();
     })();
   </script>
 </body>
 </html>
-
