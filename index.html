@@ -22,8 +22,11 @@
         password
       });
 
-      document.getElementById("msg").textContent =
-        error ? error.message : "Logged in";
+      if (error) {
+        document.getElementById("msg").textContent = error.message;
+      } else {
+        window.location.href = "home.html";
+      }
     });
   </script>
 </body>
