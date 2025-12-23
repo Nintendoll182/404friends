@@ -9,34 +9,34 @@
 
   <input id="email" placeholder="email">
   <input id="password" type="password" placeholder="password">
-  <button onclick="login()">Login / Sign up</button>
+  <button id="loginBtn">Login / Sign up</button>
 
   <p id="msg"></p>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
-    const supabase = window.supabase.createClient(
+    const sb = window.supabase.createClient(
       "https://tlxidqqcnpfxirmokhol.supabase.co",
       "sb_publishable_Xs-Tc9ZbdW5TwXVxlEdIqA_49yuVrS7"
     );
 
-    async function login() {
+    document.getElementById("loginBtn").onclick = async () => {
       const email = document.getElementById("email").value;
       const password = document.getElementById("password").value;
 
-      let { data, error } = await supabase.auth.signInWithPassword({
+      let { data, error } = await sb.auth.signInWithPassword({
         email, password
       });
 
       if (error) {
-        ({ data, error } = await supabase.auth.signUp({ email, password }));
+        ({ data, error } = await sb.auth.signUp({ email, password }));
         if (error) {
           document.getElementById("msg").textContent = error.message;
           return;
         }
       }
 
-      const { data: profile } = await supabase
+      const { data: profile } = await sb
         .from("profiles")
         .select("is_admin")
         .eq("id", data.user.id)
@@ -44,7 +44,7 @@
 
       document.getElementById("msg").textContent =
         profile?.is_admin ? "Admin logged in" : "User logged in";
-    }
+    };
   </script>
 </body>
 </html>
