@@ -1,0 +1,21 @@
+<!doctype html>
+<html>
+<body>
+  <input id="email" placeholder="email">
+  <input id="password" type="password" placeholder="password">
+  <button id="loginBtn">Login</button>
+  <p id="msg"></p>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const sb = window.supabase.createClient(
+      "https://tlxidqqcnpfxirmokhol.supabase.co",
+      "sb_publishable_Xs-Tc9ZbdW5TwXVxlEdIqA_49yuVrS7"
+    );
+
+    document.getElementById("loginBtn").addEventListener("click", async () => {
+      document.getElementById("msg").textContent = "clicked";
+    });
+  </script>
+</body>
+</html>
