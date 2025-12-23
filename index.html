@@ -13,6 +13,7 @@
     <input id="email" placeholder="email">
     <input id="password" type="password" placeholder="password">
     <button id="loginBtn">Login</button>
+    <button id="signupBtn">Sign up</button>
     <p id="msg"></p>
   </div>
 
@@ -29,11 +30,13 @@
       return (code || "").trim().toUpperCase() === INVITE;
     }
 
-    // If already validated this browser, skip invite
-    if (localStorage.getItem("invite_ok") === "1") {
+    function showLogin() {
       document.getElementById("inviteBox").style.display = "none";
       document.getElementById("loginBox").style.display = "block";
     }
+
+    // If already validated this browser, skip invite
+    if (localStorage.getItem("invite_ok") === "1") showLogin();
 
     document.getElementById("inviteBtn").onclick = () => {
       const code = document.getElementById("invite").value;
@@ -42,21 +45,35 @@
         return;
       }
       localStorage.setItem("invite_ok", "1");
-      document.getElementById("inviteBox").style.display = "none";
-      document.getElementById("loginBox").style.display = "block";
+      showLogin();
     };
 
-    document.getElementById("loginBtn").onclick = async () => {
-      const email = document.getElementById("email").value;
+    async function doLogin() {
+      const email = document.getElementById("email").value.trim();
       const password = document.getElementById("password").value;
 
       const { error } = await sb.auth.signInWithPassword({ email, password });
-
-      document.getElementById("msg").textContent =
-        error ? error.message : "Logged in";
-
+      document.getElementById("msg").textContent = error ? error.message : "Logged in";
       if (!error) window.location.href = "feed.html";
-    };
+    }
+
+    async function doSignup() {
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+
+      const { error } = await sb.auth.signUp({ email, password });
+      document.getElementById("msg").textContent = error
+        ? error.message
+        : "Account created. Now click Login.";
+    }
+
+    document.getElementById("loginBtn").onclick = doLogin;
+    document.getElementById("signupBtn").onclick = doSignup;
+
+    // Enter key submits login
+    document.getElementById("password").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") doLogin();
+    });
   </script>
 </body>
 </html>
