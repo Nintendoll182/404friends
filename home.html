@@ -1,10 +1,20 @@
 <!doctype html>
 <html>
 <body>
-  <h1>Welcome to 404friends</h1>
-  <p>You are logged in.</p>
+  <h1>404friends</h1>
 
-  <p><a id="adminLink" href="admin.html" style="display:none;">Admin panel</a></p>
+  <p>
+    <a id="adminLink" href="admin.html" style="display:none;">Admin panel</a>
+  </p>
+
+  <div id="composer" style="display:none;">
+    <textarea id="newPost" rows="3" cols="50" placeholder="Write a post…"></textarea><br>
+    <button id="postBtn">Post</button>
+    <span id="msg"></span>
+  </div>
+
+  <h2>Feed</h2>
+  <ul id="feed"></ul>
 
   <button onclick="logout()">Logout</button>
 
@@ -15,27 +25,126 @@
       "sb_publishable_Xs-Tc9ZbdW5TwXVxlEdIqA_49yuVrS7"
     );
 
-    sb.auth.getSession().then(async ({ data }) => {
+    let currentUserId = null;
+
+    async function requireSession() {
+      const { data } = await sb.auth.getSession();
       if (!data.session) {
         window.location.href = "index.html";
-        return;
+        return null;
       }
+      currentUserId = data.session.user.id;
+      document.getElementById("composer").style.display = "block";
+      return data.session;
+    }
 
+    async function showAdminLinkIfAdmin() {
       const { data: profile } = await sb
         .from("profiles")
         .select("is_admin")
-        .eq("id", data.session.user.id)
+        .eq("id", currentUserId)
         .single();
 
       if (profile?.is_admin) {
         document.getElementById("adminLink").style.display = "inline";
       }
-    });
+    }
+
+    function escapeHtml(s) {
+      return s.replace(/[&<>"']/g, c => ({
+        "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"
+      }[c]));
+    }
+
+    async function loadFeed() {
+      const { data, error } = await sb
+        .from("posts")
+        .select("id, user_id, content, created_at")
+        .order("created_at", { ascending: false })
+        .limit(50);
+
+      const ul = document.getElementById("feed");
+      ul.innerHTML = "";
+
+      if (error) {
+        ul.innerHTML = "<li>" + escapeHtml(error.message) + "</li>";
+        return;
+      }
+
+      data.forEach(p => {
+        const li = document.createElement("li");
+
+        const isOwner = p.user_id === currentUserId;
+        const contentId = "c_" + p.id;
+
+        li.innerHTML = `
+          <div>
+            <div><small>${escapeHtml(p.created_at)}</small></div>
+            <div id="${contentId}">${escapeHtml(p.content)}</div>
+            ${isOwner ? `
+              <button data-edit="${p.id}">Edit</button>
+              <button data-del="${p.id}">Delete</button>
+            ` : ``}
+            <hr>
+          </div>
+        `;
+
+        ul.appendChild(li);
+      });
+
+      // wire buttons
+      ul.querySelectorAll("button[data-del]").forEach(btn => {
+        btn.onclick = async () => {
+          const id = btn.getAttribute("data-del");
+          await sb.from("posts").delete().eq("id", id);
+          loadFeed();
+        };
+      });
+
+      ul.querySelectorAll("button[data-edit]").forEach(btn => {
+        btn.onclick = async () => {
+          const id = btn.getAttribute("data-edit");
+          const div = document.getElementById("c_" + id);
+          const current = div.textContent;
+
+          const next = prompt("Edit post:", current);
+          if (next === null) return;
+
+          const { error } = await sb
+            .from("posts")
+            .update({ content: next, updated_at: new Date().toISOString() })
+            .eq("id", id);
+
+          if (!error) loadFeed();
+        };
+      });
+    }
+
+    document.getElementById("postBtn").onclick = async () => {
+      const content = document.getElementById("newPost").value.trim();
+      if (!content) return;
+
+      const { error } = await sb.from("posts").insert({
+        user_id: currentUserId,
+        content
+      });
+
+      document.getElementById("msg").textContent = error ? error.message : "Posted";
+      if (!error) document.getElementById("newPost").value = "";
+      loadFeed();
+    };
 
     async function logout() {
       await sb.auth.signOut();
       window.location.href = "index.html";
     }
+
+    (async () => {
+      const s = await requireSession();
+      if (!s) return;
+      await showAdminLinkIfAdmin();
+      await loadFeed();
+    })();
   </script>
 </body>
 </html>
