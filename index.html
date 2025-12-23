@@ -20,18 +20,32 @@
     "sb_publishable_Xs-Tc9ZbdW5TwXVxlEdIqA_49yuVrS7"
   );
 
-  async function signup() {
-    const email = document.getElementById("email").value;
-    const password = document.getElementById("password").value;
+async function signup() {
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email, password
-    });
+  let { data, error } = await supabase.auth.signInWithPassword({
+    email, password
+  });
 
+  if (error) {
+    ({ data, error } = await supabase.auth.signUp({ email, password }));
     if (error) {
       document.getElementById("msg").textContent = error.message;
       return;
     }
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("is_admin")
+    .eq("id", data.user.id)
+    .single();
+
+  document.getElementById("msg").textContent =
+    profile?.is_admin ? "Admin logged in" : "User logged in";
+}
+
 
     const { data: profile } = await supabase
       .from("profiles")
